@@ -1,0 +1,10 @@
+Debug/
+Release/
+.vs/
+.qt/
+CBoy/
+CBoy.vcxproj.user
+out/
+build/
+CMakeSettings.json
+CMakeLists.txt.user
