@@ -52,8 +52,9 @@ void application::init()
     init_glad();
     init_dear_imgui();
 
-    //if (!audio.init(44100, 1)) throw std::runtime_error("Cannot init audio");
-    //if (!audio.start()) throw std::runtime_error("Cannot start audio engine");
+    ap.init();
+    if (!audio.init(44100, 1)) throw std::runtime_error("Cannot init audio");
+    if (!audio.start()) throw std::runtime_error("Cannot start audio engine");
 
     r.init("./resources/shaders/test.vs", "./resources/shaders/test.fs");
 }
