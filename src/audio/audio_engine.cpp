@@ -1,34 +1,34 @@
-// AudioEngine.cpp
-#define MINIAUDIO_IMPLEMENTATION 
+#define MINIAUDIO_IMPLEMENTATION
 #include "audio_engine.h"
-#include "APU.h"      // где находится apu::instance()
+#include "APU.h"
 #include <cstdio>
 
-// Конструктор задает значения по умолчанию.
 AudioEngine::AudioEngine()
-    : m_sampleRate(44100), m_channels(1), m_running(false)
+    : m_sampleRate(44100)
+    , m_channels(1)
+    , m_cyclesPerSample(0)
+    , m_testMode(false)
+    , m_running(false)
 {
-    m_cyclesPerSample = 4194304 / m_sampleRate;  // для Game Boy: тактовая частота ~4194304 Гц
 }
 
-// Деструктор: останавливаем аудио и деинициализируем устройство.
 AudioEngine::~AudioEngine() {
     shutdown();
 }
 
-bool AudioEngine::init(unsigned int sampleRate, unsigned int channels)
-{
+bool AudioEngine::init(unsigned int sampleRate, unsigned int channels) {
     m_sampleRate = sampleRate;
     m_channels = channels;
-    m_cyclesPerSample = 4194304 / m_sampleRate;  // пересчитываем
 
-    // Инициализация конфигурации устройства.
+    m_cyclesPerSample = static_cast<int>(1048576.0 / m_sampleRate);
+    if (m_cyclesPerSample < 1) m_cyclesPerSample = 1;
+
     m_deviceConfig = ma_device_config_init(ma_device_type_playback);
-    m_deviceConfig.sampleRate = m_sampleRate;
+    m_deviceConfig.playback.format = ma_format_f32;
     m_deviceConfig.playback.channels = m_channels;
-    m_deviceConfig.playback.format = ma_format_f32; // 32-битный float
-    m_deviceConfig.dataCallback = AudioEngine::data_callback;
-    m_deviceConfig.pUserData = nullptr; // Если нужно, можно передать указатель на AudioEngine или APU
+    m_deviceConfig.sampleRate = m_sampleRate;
+    m_deviceConfig.dataCallback = dataCallback;
+    m_deviceConfig.pUserData = this;
 
     if (ma_device_init(nullptr, &m_deviceConfig, &m_device) != MA_SUCCESS) {
         fprintf(stderr, "Failed to initialize audio device.\n");
@@ -59,18 +59,20 @@ void AudioEngine::shutdown() {
     ma_device_uninit(&m_device);
 }
 
-// Callback-функция miniaudio: вызывается автоматически, когда аудиовыход требует сэмплов.
-void AudioEngine::data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
-{
-    (void)pInput;
-    // Работаем с форматом f32, поэтому pOutput — это float*
-    float* pOut = (float*)pOutput;
+void AudioEngine::dataCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount) {
+    auto* engine = static_cast<AudioEngine*>(pDevice->pUserData);
+    float* out = static_cast<float*>(pOutput);
 
-    // Для каждого аудиосэмпла вызываем методы APU:
-    for (ma_uint32 i = 0; i < frameCount; i++) {
-
-        // Получаем итоговый сэмпл с микшированием каналов.
-        float sample = apu::instance().mix_sample();
-        *pOut++ = sample;
+    if (engine->m_testMode) {
+        for (ma_uint32 i = 0; i < frameCount; ++i) {
+            apu::instance().cycle(engine->m_cyclesPerSample);
+            float sample = apu::instance().mix_sample();
+            *out++ = sample;
+        }
+    }
+    else {
+        for (ma_uint32 i = 0; i < frameCount; ++i) {
+            *out++ = 0.0f;
+        }
     }
 }

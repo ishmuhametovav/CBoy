@@ -52,9 +52,13 @@ void application::init()
     init_glad();
     init_dear_imgui();
 
-    ap.init();
-    if (!audio.init(44100, 1)) throw std::runtime_error("Cannot init audio");
-    if (!audio.start()) throw std::runtime_error("Cannot start audio engine");
+    ap.enable();
+
+    audio.init(44100, 1);
+    audio.setTestMode(true);   // включаем тестовый режим
+    audio.start();
+    //if (!audio.init(44100, 1)) throw std::runtime_error("Cannot init audio");
+    //if (!audio.start()) throw std::runtime_error("Cannot start audio engine");
 
     r.init("./resources/shaders/test.vs", "./resources/shaders/test.fs");
 }
@@ -69,7 +73,7 @@ void application::loop()
         opcycles = opcycles == 0 ? 4 : opcycles;
 
         tmr.cycle(opcycles);
-        ap.cycle(opcycles);
+        //ap.cycle(opcycles);
         gp.cycle(opcycles, cart);
         inpt.cycle();
         m_cycles -= opcycles;
