@@ -41,7 +41,7 @@ class application
 	renderer& r;
 	debug debugger;
 	cartridge cart;
-	AudioEngine audio;
+	audio_engine audio;
 
 	void init_glfw();
 	void init_glad();

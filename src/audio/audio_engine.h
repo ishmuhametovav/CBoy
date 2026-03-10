@@ -1,29 +1,25 @@
 #pragma once
+
 #include "miniaudio.h"
-#include <atomic>
+#include "APU.h"
 
-class AudioEngine {
+class audio_engine
+{
 public:
-    AudioEngine();
-    ~AudioEngine();
+    audio_engine(uint32_t channels = 1);
+    ~audio_engine();
 
-    bool init(unsigned int sampleRate = 44100, unsigned int channels = 1);
-    bool start();
+    void init();
+    void start();
     void stop();
     void shutdown();
 
-    void setTestMode(bool enable) { m_testMode = enable; }
-    bool isTestMode() const { return m_testMode; }
-
 private:
-    static void dataCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount);
+    ma_device device;
+    ma_device_config device_config;
 
-    ma_device m_device;
-    ma_device_config m_deviceConfig;
-
-    unsigned int m_sampleRate;
-    unsigned int m_channels;
-    int m_cyclesPerSample;
-    std::atomic<bool> m_testMode;
-    bool m_running;
+    unsigned int channels;
+    bool running;
 };
+
+void data_callback(ma_device* device, void* output, const void* input, ma_uint32 frame_count);

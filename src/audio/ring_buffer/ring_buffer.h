@@ -38,9 +38,11 @@ public:
 
 		return value;
 	}
-	//this method is not thread-safe and probably is not needed
-	bool empty() const
+
+	void reset()
 	{
-		return read_index == write_index;
+		std::lock_guard<std::mutex> lock(buffer_mutex);
+		buffer.fill(0);
+		read_index = write_index = 0;
 	}
 };

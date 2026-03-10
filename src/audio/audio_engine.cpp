@@ -3,76 +3,59 @@
 #include "APU.h"
 #include <cstdio>
 
-AudioEngine::AudioEngine()
-    : m_sampleRate(44100)
-    , m_channels(1)
-    , m_cyclesPerSample(0)
-    , m_testMode(false)
-    , m_running(false)
+audio_engine::audio_engine(uint32_t channels) : running(false), channels(channels), device{}, device_config{}
 {
+
 }
 
-AudioEngine::~AudioEngine() {
+audio_engine::~audio_engine()
+{
     shutdown();
 }
 
-bool AudioEngine::init(unsigned int sampleRate, unsigned int channels) {
-    m_sampleRate = sampleRate;
-    m_channels = channels;
+void audio_engine::init() 
+{
+    device_config = ma_device_config_init(ma_device_type_playback);
+    device_config.playback.format = ma_format_f32;
+    device_config.playback.channels = channels;
+    device_config.sampleRate = SAMPLE_RATE;
+    device_config.dataCallback = data_callback;
+    device_config.pUserData = this;
 
-    m_cyclesPerSample = static_cast<int>(1048576.0 / m_sampleRate);
-    if (m_cyclesPerSample < 1) m_cyclesPerSample = 1;
-
-    m_deviceConfig = ma_device_config_init(ma_device_type_playback);
-    m_deviceConfig.playback.format = ma_format_f32;
-    m_deviceConfig.playback.channels = m_channels;
-    m_deviceConfig.sampleRate = m_sampleRate;
-    m_deviceConfig.dataCallback = dataCallback;
-    m_deviceConfig.pUserData = this;
-
-    if (ma_device_init(nullptr, &m_deviceConfig, &m_device) != MA_SUCCESS) {
-        fprintf(stderr, "Failed to initialize audio device.\n");
-        return false;
-    }
-
-    return true;
-}
-
-bool AudioEngine::start() {
-    if (ma_device_start(&m_device) != MA_SUCCESS) {
-        fprintf(stderr, "Failed to start audio device.\n");
-        return false;
-    }
-    m_running = true;
-    return true;
-}
-
-void AudioEngine::stop() {
-    if (m_running) {
-        ma_device_stop(&m_device);
-        m_running = false;
+    if (ma_device_init(nullptr, &device_config, &device) != MA_SUCCESS)
+    {
+        throw std::runtime_error("failed to initialize audio engine");
     }
 }
 
-void AudioEngine::shutdown() {
+void audio_engine::start() 
+{
+    if (ma_device_start(&device) != MA_SUCCESS) 
+    {
+        throw std::runtime_error("failed to start audio engine");
+    }
+    running = true;
+}
+
+void audio_engine::stop()
+{
+    if (running) 
+    {
+        ma_device_stop(&device);
+        running = false;
+    }
+}
+
+void audio_engine::shutdown()
+{
     stop();
-    ma_device_uninit(&m_device);
+    ma_device_uninit(&device);
 }
 
-void AudioEngine::dataCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount) {
-    auto* engine = static_cast<AudioEngine*>(pDevice->pUserData);
-    float* out = static_cast<float*>(pOutput);
+void data_callback(ma_device* device, void* output, const void* input, ma_uint32 frame_count) 
+{
+    auto* engine = static_cast<audio_engine*>(device->pUserData);
+    float* out = static_cast<float*>(output);
 
-    if (engine->m_testMode) {
-        for (ma_uint32 i = 0; i < frameCount; ++i) {
-            apu::instance().cycle(engine->m_cyclesPerSample);
-            float sample = apu::instance().mix_sample();
-            *out++ = sample;
-        }
-    }
-    else {
-        for (ma_uint32 i = 0; i < frameCount; ++i) {
-            *out++ = 0.0f;
-        }
-    }
+    apu::instance().feed_samples(out, frame_count);
 }

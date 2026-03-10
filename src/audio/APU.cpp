@@ -1,7 +1,8 @@
 ﻿#include "APU.h"
 
 //==========================================
-apu::apu() : enabled(true), NR50(0x77), NR51(0xF3), NR52(0xF1), length_timer_cycles(0), envelope_cycles(0), buffer{ }
+apu::apu() : enabled(true), NR50(0x77), NR51(0xF3), NR52(0xF1), sample_cycles(0), 
+    length_timer_cycles(0), envelope_cycles(0), buffer{ }
 {
 	ch2 = new pulse_channel();
 }
@@ -30,6 +31,7 @@ void apu::enable()
     this behaviour was implemented in reset methods of the channel
     (see disable method) because apu is powered off it should work fine*/
     enabled = true;
+    sample_cycles = 0;
 	length_timer_cycles = 0;
 	envelope_cycles = 0;
 }
@@ -39,6 +41,9 @@ void apu::disable()
     /*when apu powered off registers(except NR52 and NRx1) cleared*/
     enabled = false;
     NR50 = NR51 = 0;
+    //clearing up the buffer
+    buffer.reset();
+
     ch2->reset();
 }
 
@@ -57,7 +62,7 @@ uint8_t apu::get_register(uint16_t address)
     return 0xFF;
 }
 
-void apu::set_register(uint16_t address, uint8_t value)
+void apu::set_register(uint16_t address, const uint8_t value)
 {
     //turning off APU making its registers read only(except NR52 and channels NRX1 on DMG)
     if (!enabled && address != 0xFF26 && address != 0xFF11 && address != 0xFF16
@@ -94,17 +99,23 @@ void apu::cycle(int32_t m_cycles)
 {
     if (enabled) 
     {
+        sample_cycles += m_cycles;
 		length_timer_cycles += m_cycles;
 		envelope_cycles += m_cycles;
 
         ch2->cycle(m_cycles);
 
-        while (length_timer_cycles >= LENGTH_TIMER_CLOCK)//has to be if
+        if(sample_cycles >= SAMPLE_CLOCK)
+        {
+            buffer.add(mix_sample());
+            sample_cycles -= SAMPLE_CLOCK;
+        }
+        if (length_timer_cycles >= LENGTH_TIMER_CLOCK)
         {
             ch2->cycle_length_timer();
 			length_timer_cycles -= LENGTH_TIMER_CLOCK;
         }
-        while (envelope_cycles >= ENVELOPE_CLOCK)//has to be if
+        if (envelope_cycles >= ENVELOPE_CLOCK)
         {
             ch2->cycle_volume();
             envelope_cycles -= ENVELOPE_CLOCK;
@@ -141,4 +152,27 @@ float apu::mix_sample()
     float mono_sample = (left_sum + right_sum) / 2.0f;
 
     return mono_sample;
+}
+
+void apu::feed_samples(float* output, const size_t count)
+{
+    size_t i = 0;
+    while(i < count)
+    {
+        std::optional<float> sample = buffer.get();
+
+        if (sample.has_value())
+        {
+            output[i] = sample.value();
+        }
+        else break;
+
+        i++;
+    }
+
+    while(i < count)
+    {
+        output[i] = 0;
+        i++;
+    }
 }

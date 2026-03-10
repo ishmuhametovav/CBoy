@@ -13,7 +13,7 @@ void pulse_channel::cycle(uint32_t m_cycles)
 
 		/*period counter is incremented every 1 M - Cycles(every 4 cycles of the CPU)
 		when it overflows new period value is calculated from NR3 and NR4.*/
-		while(cycles_accumulated >= sample_rate)//has to be if
+		if(cycles_accumulated >= sample_rate)//has to be if
 		{
 			cycles_accumulated -= sample_rate;
 			sample_index = (sample_index + 1) % 8;
