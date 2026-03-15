@@ -6,10 +6,10 @@
 class audio_engine
 {
 public:
-    audio_engine(uint32_t channels = 1);
+    audio_engine();
     ~audio_engine();
 
-    void init();
+    void init(uint32_t channels = 1);
     void start();
     void stop();
     void shutdown();

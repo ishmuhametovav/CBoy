@@ -2,13 +2,13 @@
 #include <cstdint>
 #include <array>
 #include <iostream>
-#include "./channels/pulse_channel.h"
+#include "./channels/sweep_pulse_channel.h"
 #include "./ring_buffer/ring_buffer.h"
 
 constexpr uint16_t DIV_APU_CLOCK = 2048;
 constexpr uint32_t SAMPLE_RATE = 44100;
 /*integer value, maybe double in future*/
-constexpr uint32_t SAMPLE_CLOCK = 1048576 / static_cast<float>(SAMPLE_RATE);
+constexpr uint32_t SAMPLE_CLOCK = 1048576 / SAMPLE_RATE;
 
 class apu//singleton apu class
 {
@@ -21,6 +21,9 @@ class apu//singleton apu class
 	uint16_t sample_cycles;
 	uint16_t length_timer_cycles;
 	uint16_t envelope_cycles;
+	uint16_t sweep_cycles;
+
+	sweep_pulse_channel* ch1;
 	pulse_channel* ch2;
 
 	ring_buffer<float> buffer;

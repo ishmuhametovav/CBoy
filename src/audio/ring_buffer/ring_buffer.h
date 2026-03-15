@@ -4,7 +4,7 @@
 #include <array>
 #include <optional>
 
-constexpr size_t BUFFER_SIZE = 2048;
+constexpr size_t BUFFER_SIZE = 4096;
 
 template<typename T> class ring_buffer
 {

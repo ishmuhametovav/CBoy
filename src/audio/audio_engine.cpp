@@ -3,7 +3,7 @@
 #include "APU.h"
 #include <cstdio>
 
-audio_engine::audio_engine(uint32_t channels) : running(false), channels(channels), device{}, device_config{}
+audio_engine::audio_engine() : running(false), channels(0), device{}, device_config{}
 {
 
 }
@@ -13,8 +13,10 @@ audio_engine::~audio_engine()
     shutdown();
 }
 
-void audio_engine::init() 
+void audio_engine::init(uint32_t channels)
 {
+    this->channels = channels;
+
     device_config = ma_device_config_init(ma_device_type_playback);
     device_config.playback.format = ma_format_f32;
     device_config.playback.channels = channels;

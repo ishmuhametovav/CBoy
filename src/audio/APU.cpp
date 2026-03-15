@@ -2,14 +2,17 @@
 
 //==========================================
 apu::apu() : enabled(true), NR50(0x77), NR51(0xF3), NR52(0xF1), sample_cycles(0), 
-    length_timer_cycles(0), envelope_cycles(0), buffer{ }
+    length_timer_cycles(0), envelope_cycles(0), sweep_cycles(0), buffer{ }
 {
+    ch1 = new sweep_pulse_channel();
 	ch2 = new pulse_channel();
 }
 
 void apu::update_channels_status()
 {
     uint8_t status = 0;
+    //channel1 enabled
+    if(ch1->get_enabled()) status |= 0x01;
     //channel2 enabled
     if (ch2->get_enabled()) status |= 0x02;
 
@@ -34,6 +37,7 @@ void apu::enable()
     sample_cycles = 0;
 	length_timer_cycles = 0;
 	envelope_cycles = 0;
+    sweep_cycles = 0;
 }
 
 void apu::disable()
@@ -44,6 +48,7 @@ void apu::disable()
     //clearing up the buffer
     buffer.reset();
 
+    ch1->reset();
     ch2->reset();
 }
 
@@ -52,6 +57,13 @@ uint8_t apu::get_register(uint16_t address)
     if (address == 0xFF24) return NR50;
     if (address == 0xFF25) return NR51;
     if (address == 0xFF26) { update_channels_status(); return NR52 | 0x70; }
+
+    // Channel 1: 0xFF10 - 0xFF14
+    if (address == 0xFF10) return ch1->get_nr0();
+    if (address == 0xFF11) return ch1->get_nr1();
+    if (address == 0xFF12) return ch1->get_nr2();
+    if (address == 0xFF13) return ch1->get_nr3();
+    if (address == 0xFF14) return ch1->get_nr4();
 
     // Channel 2: 0xFF16 - 0xFF19
     if (address == 0xFF16) return ch2->get_nr1();
@@ -88,6 +100,13 @@ void apu::set_register(uint16_t address, const uint8_t value)
         update_channels_status();
     }
 
+    // Channel 1: 0xFF10 - 0xFF14
+    if (address == 0xFF10) { ch1->set_nr0(value); return; }
+    if (address == 0xFF11) { ch1->set_nr1(value); return; }
+    if (address == 0xFF12) { ch1->set_nr2(value); return; }
+    if (address == 0xFF13) { ch1->set_nr3(value); return; }
+    if (address == 0xFF14) { ch1->set_nr4(value); return; }
+
     // Channel 2: 0xFF16 - 0xFF19
     if (address == 0xFF16) { ch2->set_nr1(value); return; }
     if (address == 0xFF17) { ch2->set_nr2(value); return; }
@@ -102,7 +121,15 @@ void apu::cycle(int32_t m_cycles)
         sample_cycles += m_cycles;
 		length_timer_cycles += m_cycles;
 		envelope_cycles += m_cycles;
+        sweep_cycles += m_cycles;
 
+        if(sweep_cycles >= SWEEP_CLOCK)
+        {
+            ch1->cycle_sweep();
+            sweep_cycles -= SWEEP_CLOCK;
+        }
+
+        ch1->cycle(m_cycles);
         ch2->cycle(m_cycles);
 
         if(sample_cycles >= SAMPLE_CLOCK)
@@ -112,11 +139,13 @@ void apu::cycle(int32_t m_cycles)
         }
         if (length_timer_cycles >= LENGTH_TIMER_CLOCK)
         {
+            ch1->cycle_length_timer();
             ch2->cycle_length_timer();
 			length_timer_cycles -= LENGTH_TIMER_CLOCK;
         }
         if (envelope_cycles >= ENVELOPE_CLOCK)
         {
+            ch1->cycle_volume();
             ch2->cycle_volume();
             envelope_cycles -= ENVELOPE_CLOCK;
         }
@@ -127,8 +156,8 @@ float apu::mix_sample()
 {
     if (!enabled) return 0.0f;
 
-    float s1 = 0.0f;
-    float s2 = ch2->get_sample();
+    float s1 = ch1->get_sample();
+    float s2 = 0;//ch2->get_sample();
     float s3 = 0.0f;
     float s4 = 0.0f;
 
@@ -149,7 +178,7 @@ float apu::mix_sample()
     left_sum *= left_vol;
     right_sum *= right_vol;
 
-    float mono_sample = (left_sum + right_sum) / 2.0f;
+    float mono_sample = (left_sum + right_sum) / 64.0f;
 
     return mono_sample;
 }

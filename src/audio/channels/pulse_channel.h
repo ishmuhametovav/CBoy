@@ -15,6 +15,7 @@ constexpr std::array<std::array<uint8_t, 8>, 4> WAVE_FORMS{{
 
 class pulse_channel 
 {
+protected:
 	bool enabled;
 
 	uint32_t cycles_accumulated;
