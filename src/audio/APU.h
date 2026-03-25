@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <array>
 #include <iostream>
+#include <memory>
 #include "./channels/sweep_pulse_channel.h"
 #include "./ring_buffer/ring_buffer.h"
 
@@ -23,8 +24,8 @@ class apu//singleton apu class
 	uint16_t envelope_cycles;
 	uint16_t sweep_cycles;
 
-	sweep_pulse_channel* ch1;
-	pulse_channel* ch2;
+	std::unique_ptr<sweep_pulse_channel> ch1;
+	std::unique_ptr<pulse_channel> ch2;
 
 	ring_buffer<float> buffer;
 
@@ -45,7 +46,7 @@ public:
 	void set_register(uint16_t address, const uint8_t value);
 	uint8_t get_register(uint16_t address);
 
-	void cycle(int32_t m_cycles);
+	void cycle(int32_t mcycles);
 	float mix_sample();
 	/*feed samples to audio engine
 	remained buffer filled with 0*/

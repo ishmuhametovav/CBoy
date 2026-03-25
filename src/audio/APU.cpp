@@ -4,8 +4,8 @@
 apu::apu() : enabled(true), NR50(0x77), NR51(0xF3), NR52(0xF1), sample_cycles(0), 
     length_timer_cycles(0), envelope_cycles(0), sweep_cycles(0), buffer{ }
 {
-    ch1 = new sweep_pulse_channel();
-	ch2 = new pulse_channel();
+    ch1 = std::make_unique<sweep_pulse_channel>();
+	ch2 = std::make_unique<pulse_channel>();
 }
 
 void apu::update_channels_status()
@@ -114,14 +114,14 @@ void apu::set_register(uint16_t address, const uint8_t value)
     if (address == 0xFF19) { ch2->set_nr4(value); return; }
 }
 
-void apu::cycle(int32_t m_cycles)
+void apu::cycle(int32_t mcycles)
 {
     if (enabled) 
     {
-        sample_cycles += m_cycles;
-		length_timer_cycles += m_cycles;
-		envelope_cycles += m_cycles;
-        sweep_cycles += m_cycles;
+        sample_cycles += mcycles;
+		length_timer_cycles += mcycles;
+		envelope_cycles += mcycles;
+        sweep_cycles += mcycles;
 
         if(sweep_cycles >= SWEEP_CLOCK)
         {
@@ -129,8 +129,8 @@ void apu::cycle(int32_t m_cycles)
             sweep_cycles -= SWEEP_CLOCK;
         }
 
-        ch1->cycle(m_cycles);
-        ch2->cycle(m_cycles);
+        ch1->cycle(mcycles);
+        ch2->cycle(mcycles);
 
         if(sample_cycles >= SAMPLE_CLOCK)
         {
@@ -157,7 +157,7 @@ float apu::mix_sample()
     if (!enabled) return 0.0f;
 
     float s1 = ch1->get_sample();
-    float s2 = 0;//ch2->get_sample();
+    float s2 = ch2->get_sample();
     float s3 = 0.0f;
     float s4 = 0.0f;
 

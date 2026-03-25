@@ -22,6 +22,6 @@ public:
 	void reset();
 	void trigger();
 
-	uint8_t get_nr0() const { return NR0 | 0xF80; }
+	uint8_t get_nr0() const { return NR0 | 0x80; }
 	void set_nr0(const uint8_t value) { this->NR0 = value; }
 };

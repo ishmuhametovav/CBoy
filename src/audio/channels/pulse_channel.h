@@ -39,7 +39,7 @@ protected:
 	uint8_t get_envelope_period() const { return NR2 & 0x07; }
 public:
 	pulse_channel();
-	void cycle(uint32_t m_cycles);
+	void cycle(uint32_t mcycles);
 	void cycle_length_timer();
 	void cycle_volume();
 	//returns analog signal

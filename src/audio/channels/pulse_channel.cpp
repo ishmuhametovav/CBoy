@@ -3,11 +3,11 @@
 pulse_channel::pulse_channel() : enabled(false), cycles_accumulated(0), current_period(0),
 	length_timer(0), sample_index(0), volume(0), envelope_ticks(0), NR1(0), NR2(0), NR3(0), NR4(0){ }
 
-void pulse_channel::cycle(uint32_t m_cycles)
+void pulse_channel::cycle(uint32_t mcycles)
 {
 	if (enabled) 
 	{
-		cycles_accumulated += m_cycles;
+		cycles_accumulated += mcycles;
 
 		uint16_t sample_rate = 2048 - current_period;//sample rate
 
@@ -89,20 +89,19 @@ void pulse_channel::reset()
 
 void pulse_channel::trigger()
 {
+	enabled = true;
+	/*it is not obvious what envelope timer should do
+	so I decided to reset it here*/
+	envelope_ticks = 0;
+
+	/*length timer remains the same because in this 
+	implementation timer counter increments, so 0 
+	is equal to 64 */
+
+	current_period = get_period();
+	volume = get_initial_volume();
+
 	//if DAC disabled, channel will not turn on
-	if (dac_enabled()) 
-	{
-		enabled = true;
-		/*it is not obvious what envelope timer should do
-		so I decided to reset it here*/
-		envelope_ticks = 0;
-
-		/*length timer remains the same because in this 
-		implementation timer counter increments, so 0 
-		is equal to 64 */
-
-		current_period = get_period();
-		volume = get_initial_volume();
-	}
+	if (!dac_enabled()) enabled = false;
 }
 
