@@ -5,6 +5,7 @@
 
 constexpr uint8_t WAVE_RAM_SIZE = 16;
 constexpr uint16_t WAVE_RAM_START_ADDRESS = 0xFF30;
+constexpr uint16_t WAVE_LENGTH_TIMER_MAX_VALUE = 256;
 
 class wave_channel
 {

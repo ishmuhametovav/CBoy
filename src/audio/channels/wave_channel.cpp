@@ -6,20 +6,31 @@ wave_channel::wave_channel()
 
 void wave_channel::cycle(uint32_t mcycles)
 {
-	cycles_accumulated += mcycles;
-
-	uint16_t sample_rate = (2048 - current_period) * 2;
-	if(cycles_accumulated >= sample_rate)
+	if (enabled) 
 	{
-		sample_index = (sample_index + 1) % 32;
-		current_period = get_period();
-		cycles_accumulated -= sample_rate;
-	}
+		cycles_accumulated += mcycles;
 
+		uint16_t sample_rate = (2048 - current_period) * 2;
+		if (cycles_accumulated >= sample_rate)
+		{
+			sample_index = (sample_index + 1) % 32;
+			current_period = get_period();
+			cycles_accumulated -= sample_rate;
+		}
+	}
 }
 
 void wave_channel::cycle_length_timer()
 {
+	if (enabled)
+	{
+		length_timer++;
+
+		if (length_timer >= WAVE_LENGTH_TIMER_MAX_VALUE)
+		{
+			enabled = false;
+		}
+	}
 }
 
 float wave_channel::get_sample() const
@@ -48,4 +59,5 @@ void wave_channel::trigger()
 void wave_channel::reset()
 {
 	NR0 = NR2 = NR3 = NR4 = 0;
+	trigger();
 }
